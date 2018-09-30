@@ -54,7 +54,7 @@ void ShowCommandList()
     cout << "Type \\ and then the command letter, example: ´\\M <Bobo>: Hello What is up´" << endl;
     cout << "Commands available are:" << endl;
     cout << "A: Sends message to all users (default no need to type \A)" << endl;
-    cout << "M: Send message to single user" << endl;
+    cout << "M: Send message to single user: ex: \\M <Bobo> Hello Dude" << endl;
     cout << "W: List of users on the server" << endl;
     cout << "L: Leave chat and exit program" << endl;
     cout << "I: Shows the id of the server" << endl;
