@@ -22,6 +22,7 @@ int main()
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;           // Socket address structure
     struct hostent *server;
+    string username = "";
 
     char buffer[256];
 
@@ -61,11 +62,16 @@ int main()
 
     // The FIRST char in the buffer is reserved for commands
     string command ("C");
-    string foo (buffer);
-    string fool = command + foo;
-    strncpy(buffer, fool.c_str(), sizeof(buffer));
+    username = buffer;
+    string tosend = command + username;
+    strncpy(buffer, tosend.c_str(), sizeof(buffer));
 
     n = write(sockfd, buffer, strlen(buffer));
+
+    username = username.substr(0, username.length()-1);
+
+    /* TODO: make client listen to server socket in another thread */
+
 
     // Read and write to socket
     while (true)
@@ -74,6 +80,11 @@ int main()
 
         bzero(buffer, 256); // Empty buffer.
         fgets(buffer, 254, stdin); // Read from console.
+
+        string command ("A"); // SEND TO ALL USERS
+        string message (buffer);
+        string fool = command + "[" + username + "]: " + message;
+        strncpy(buffer, fool.c_str(), sizeof(buffer));
 
         n = write(sockfd, buffer, strlen(buffer));
     }

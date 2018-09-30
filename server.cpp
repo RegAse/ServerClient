@@ -27,7 +27,26 @@ void FatalErrorMessage(const char *msg)
 struct client_data {
     int thread_id;
     int client_socket;
+    string username;
 };
+
+/* Global Variables */
+pthread_t clients[10]; // 10 Clients
+struct client_data data[10];
+
+void HandleClientCommand(string command, client_data *client)
+{
+    if(command == "C")
+    {
+        // Client can call this again to change his username.
+        cout << "I GOT CONNECT COMMAND" << endl;
+    }
+    else if(command == "A")
+    {
+        cout << "Send Message to All Clients" << endl;
+        cout << "From: " << client->username << endl;
+    }
+}
 
 void *ReadFromClient(void *thread)
 {
@@ -49,13 +68,21 @@ void *ReadFromClient(void *thread)
             hasConnection = false;
             break;
         }
+        /* The response should always contain a command. */
+        string response (buffer);
+        string command = response.substr(0, 1);
+        string body = response.substr(1, response.length());
 
-        printf("Message from USERNAME: %s\n", buffer);
+        cout << "Command = " << command << ", Body = " << body << endl;
 
-        if(buffer[255] == 'C')
+        cout << body << endl;
+
+        if(command == "C")
         {
-            cout << "I GOT CONNECT COMMAND" << endl;
+            client->username = body;
+            cout << "SETTING USERNAME" << endl;
         }
+        HandleClientCommand(command, client);
 
         bzero(buffer, 256);
     }
@@ -65,8 +92,8 @@ void *ReadFromClient(void *thread)
 
 void ListenForConnections(int port)
 {
-    pthread_t clients[10]; // 10 Clients
-    struct client_data data[10];
+    //pthread_t clients[10]; // 10 Clients
+    //struct client_data data[10];
 
     int serverSock, clientSock;
 
@@ -112,6 +139,7 @@ void ListenForConnections(int port)
         // Create Thread to read from client.
         data[clientCount].thread_id = clientCount;
         data[clientCount].client_socket = clientSock;
+        data[clientCount].username = "NOT SET";
 
         int rc = pthread_create(&clients[clientCount], NULL, ReadFromClient, (void *)&data[clientCount]);
 
