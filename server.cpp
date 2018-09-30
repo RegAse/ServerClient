@@ -11,6 +11,8 @@
 
 using namespace std;
 
+string GenerateFortune();
+
 /* Show error message */
 void ErrorMessage(const char *msg)
 {
@@ -33,24 +35,24 @@ struct client_data {
 /* Global Variables */
 pthread_t clients[10]; // 10 Clients
 struct client_data data[10];
+string serverID;
 
 void HandleClientCommand(string command, string body, client_data *client)
 {
     int n;
     char buffer[256];
-    if(command == "C")
-    {
-        // Client can call this again to change his username.
-        cout << "I GOT CONNECT COMMAND" << endl;
-    }
-    else if(command == "A")
+    if(command == "A")
     {
         cout << "Send Message to All Clients" << endl;
-        cout << "From: " << client->username << endl;
+        cout << "From: " << client->thread_id << endl;
         for(int i = 0; i < 10; i++)
         {
             if(clients[i] != 0)
             {
+                if(client->thread_id == data[i].thread_id)
+                {
+                    continue;
+                }
                 cout << "Send Message to:" << data[i].username << endl;
                 strncpy(buffer, body.c_str(), sizeof(buffer));
                 n = write(data[i].client_socket, body.c_str(), strlen(buffer));
@@ -63,21 +65,35 @@ void HandleClientCommand(string command, string body, client_data *client)
     {
 
     }
-    else if(command == "L")
-    {
-
-    }
     else if(command == "W")
     {
-
+        cout << "Sending list of users:" << endl;
+        string userList = "==== Users On Server ====\n";
+        for(int i = 0; i < 10; i++)
+        {
+            if(clients[i] != 0)
+            {
+                userList += data[i].username;
+            }
+        }
+        userList += "=========================\n";
+        strncpy(buffer, userList.c_str(), sizeof(buffer));
+        n = write(client->client_socket, userList.c_str(), strlen(buffer));
+        cout << userList << endl;
+        if (n < 0)
+            ErrorMessage("ERROR writing to socket");
     }
-    else if(command == "I")
+    else if(command == "I" || command == "K")
     {
-
-    }
-    else if(command == "K")
-    {
-
+        if(command == "K")
+        {
+            serverID = GenerateFortune();
+        }
+        cout << "Sending ID of server" << endl;
+        strncpy(buffer, serverID.c_str(), sizeof(buffer));
+        n = write(client->client_socket, buffer, strlen(buffer));
+        if (n < 0)
+            ErrorMessage("ERROR writing to socket");
     }
 }
 
@@ -98,6 +114,7 @@ void *ReadFromClient(void *thread)
         if(n < 1)
         {
             ErrorMessage("Lost connection to client.");
+            clients[client->thread_id] = NULL;
             hasConnection = false;
             break;
         }
@@ -125,9 +142,6 @@ void *ReadFromClient(void *thread)
 
 void ListenForConnections(int port)
 {
-    //pthread_t clients[10]; // 10 Clients
-    //struct client_data data[10];
-
     int serverSock, clientSock;
 
     socklen_t clilen;
@@ -183,8 +197,32 @@ void ListenForConnections(int port)
     close(serverSock);
 }
 
+string GenerateFortune()
+{
+    string command, data;
+    FILE * stream;
+    char buffer[256];
+    command.append("fortune");
+
+    stream = popen(command.c_str(), "r");
+    if (stream) {
+        while (!feof(stream))
+        if (fgets(buffer, 256, stream) != NULL)
+        {
+            data.append(buffer);
+        }
+        pclose(stream);
+
+    }
+    return data;
+}
+
 int main()
 {
+    serverID = GenerateFortune();
+    //serverID = popen("fortune", "r");
+    cout << "Server starting..." << endl;
+    cout << "ID: " << serverID;
     ListenForConnections(5232);
     return -1;
 }

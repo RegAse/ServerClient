@@ -41,12 +41,28 @@ void *ReadFromServer(void *thread)
         bzero(buffer, 256);
 
         n = read(server->server_socket, buffer, 255);
-        cout << buffer << endl;
+        cout << buffer;
 
         if (n < 0)
              error("ERROR reading from socket");
     }
 }
+
+void ShowCommandList()
+{
+    cout << "Welcome to the chat!" << endl;
+    cout << "Type \\ and then the command letter, example: ´\\M <Bobo>: Hello What is up´" << endl;
+    cout << "Commands available are:" << endl;
+    cout << "A: Sends message to all users (default no need to type \A)" << endl;
+    cout << "M: Send message to single user" << endl;
+    cout << "W: List of users on the server" << endl;
+    cout << "L: Leave chat and exit program" << endl;
+    cout << "I: Shows the id of the server" << endl;
+    cout << "K: Changes the id of the server" << endl;
+    cout << "============================================================================" << endl << endl;
+}
+
+void HandleClientCommand(string username,string command, string body, string parameter1, int serverSocket);
 
 int main()
 {
@@ -101,31 +117,58 @@ int main()
 
     username = username.substr(0, username.length()-1);
 
-    /* TODO: make client listen to server socket in another thread */
-
-    // Read from server
+    // Read from server in another thread.
     data.server_socket = sockfd;
     int rc = pthread_create(&serverThread, NULL, ReadFromServer, (void *)&sockfd);
 
-    // Read and write to socket
+    ShowCommandList();
+    // Write to the server.
     while (true)
     {
-        printf("Please enter the message: ");
-
         bzero(buffer, 256); // Empty buffer.
         fgets(buffer, 254, stdin); // Read from console.
 
-        string command ("A"); // SEND TO ALL USERS
         string message (buffer);
-        string fool = command + "[" + username + "]: " + message;
-        strncpy(buffer, fool.c_str(), sizeof(buffer));
+        string command, parameter, body;
+        body = message;
+        if(message.substr(0, 1) == "\\")
+        {
+            command = message[1];
+            body = body.substr(2, body.length());
+        }
+        else
+        {
+            command = "A";
+        }
 
-        n = write(sockfd, buffer, strlen(buffer));
-
-        if (n < 0)
-            error("ERROR writing to socket");
-
+        HandleClientCommand(username, command, body, parameter, sockfd);
     }
     close(sockfd);
     return 0;
+}
+
+void HandleClientCommand(string username, string command, string body, string parameter1, int serverSocket)
+{
+    int n;
+    char buffer[256];
+    if(command == "A" || command == "W" || command == "I" || command == "K")
+    {
+        string response = command + "[" + username + "]: " + body;
+        strncpy(buffer, response.c_str(), sizeof(buffer));
+
+        n = write(serverSocket, buffer, strlen(buffer));
+
+        if (n < 0)
+            error("ERROR writing to socket");
+    }
+    else if(command == "M")
+    {
+
+    }
+    else if(command == "L")
+    {
+        cout << "Leaving...." << endl;
+        close(serverSocket);
+        exit(1);
+    }
 }
