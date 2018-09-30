@@ -8,6 +8,7 @@
 #include <iostream>
 #include <pthread.h>
 #include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
@@ -40,7 +41,7 @@ string serverID;
 void HandleClientCommand(string command, string body, client_data *client)
 {
     int n;
-    char buffer[256];
+    char buffer[512];
     if(command == "A")
     {
         cout << "Send Message to All Clients" << endl;
@@ -63,7 +64,37 @@ void HandleClientCommand(string command, string body, client_data *client)
     }
     else if(command == "M")
     {
+        int first = 0;
+        int last = 0;
+        cout << body << endl;
+        for(int i = 0; i < body.length(); i++)
+        {
+            if(body.substr(i, 1) == "<" && first == 0)
+            {
+                first = i;
+            }
+            else if(body.substr(i, 1) == ">")
+            {
+                last = i;
+                break;
+            }
+        }
+        string username = body.substr(first + 1, last - first - 1);
 
+        for(int i = 0; i < 10; i++)
+        {
+            if(clients[i] != 0)
+            {
+                if(data[i].username == username)
+                {
+                    cout << "Send Message to:" << data[i].username << endl;
+                    strncpy(buffer, body.c_str(), sizeof(buffer));
+                    n = write(data[i].client_socket, body.c_str(), strlen(buffer));
+                    if (n < 0)
+                        ErrorMessage("ERROR writing to socket");
+                }
+            }
+        }
     }
     else if(command == "W")
     {
@@ -104,13 +135,13 @@ void *ReadFromClient(void *thread)
     client = (struct client_data *) thread;
 
     int n;
-    char buffer[256];
+    char buffer[512];
     bool hasConnection = true;
     while(hasConnection)
     {
         cout << "Reading from client socket." << endl;
 
-        n = read(client->client_socket, buffer, 255);
+        n = read(client->client_socket, buffer, 511);
         if(n < 1)
         {
             ErrorMessage("Lost connection to client.");
@@ -129,12 +160,12 @@ void *ReadFromClient(void *thread)
 
         if(command == "C")
         {
-            client->username = body;
+            client->username = body.substr(0, body.length() - 1);
             cout << "SETTING USERNAME" << endl;
         }
         HandleClientCommand(command, body, client);
 
-        bzero(buffer, 256);
+        bzero(buffer, 512);
     }
 
     close(client->client_socket);
@@ -145,7 +176,7 @@ void ListenForConnections(int port)
     int serverSock, clientSock;
 
     socklen_t clilen;
-    char buffer[256];
+    char buffer[512];
     struct sockaddr_in serv_addr, cli_addr;
     int n;
     int clientCount = 0;
@@ -181,7 +212,7 @@ void ListenForConnections(int port)
             ErrorMessage("ERROR on accept");
         }
 
-        bzero(buffer, 256);
+        bzero(buffer, 512);
 
         // Create Thread to read from client.
         data[clientCount].thread_id = clientCount;
@@ -201,19 +232,22 @@ string GenerateFortune()
 {
     string command, data;
     FILE * stream;
-    char buffer[256];
-    command.append("fortune");
+    char buffer[512];
+    command.append("fortune -s");
 
     stream = popen(command.c_str(), "r");
     if (stream) {
         while (!feof(stream))
-        if (fgets(buffer, 256, stream) != NULL)
+        if (fgets(buffer, 512, stream) != NULL)
         {
             data.append(buffer);
         }
         pclose(stream);
 
     }
+    std::time_t result = std::time(nullptr);
+    data += std::asctime(std::localtime(&result));
+    data += "Y_Project_2 64";
     return data;
 }
 
@@ -222,7 +256,7 @@ int main()
     serverID = GenerateFortune();
     //serverID = popen("fortune", "r");
     cout << "Server starting..." << endl;
-    cout << "ID: " << serverID;
-    ListenForConnections(5232);
+    cout << "ID: " << serverID << endl;
+    ListenForConnections(5235);
     return -1;
 }

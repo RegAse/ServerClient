@@ -71,9 +71,9 @@ int main()
     struct hostent *server;
     string username = "";
 
-    char buffer[256];
+    char buffer[512];
 
-    portno = 5232;     // Read Port No from command line
+    portno = 5235;     // Read Port No from command line
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0); // Open Socket
 
@@ -104,8 +104,8 @@ int main()
     /* Now we ask for username */
     printf("Please enter a username (more than 3 characters):");
 
-    bzero(buffer, 256); // Empty buffer.
-    fgets(buffer, 254, stdin); // Read from console.
+    bzero(buffer, 512); // Empty buffer.
+    fgets(buffer, 510, stdin); // Read from console.
 
     // The FIRST char in the buffer is reserved for commands
     string command ("C");
@@ -125,8 +125,8 @@ int main()
     // Write to the server.
     while (true)
     {
-        bzero(buffer, 256); // Empty buffer.
-        fgets(buffer, 254, stdin); // Read from console.
+        bzero(buffer, 512); // Empty buffer.
+        fgets(buffer, 510, stdin); // Read from console.
 
         string message (buffer);
         string command, parameter, body;
@@ -150,8 +150,8 @@ int main()
 void HandleClientCommand(string username, string command, string body, string parameter1, int serverSocket)
 {
     int n;
-    char buffer[256];
-    if(command == "A" || command == "W" || command == "I" || command == "K")
+    char buffer[512];
+    if(command == "A" || command == "W" || command == "I" || command == "K" || command == "M")
     {
         string response = command + "[" + username + "]: " + body;
         strncpy(buffer, response.c_str(), sizeof(buffer));
@@ -160,10 +160,6 @@ void HandleClientCommand(string username, string command, string body, string pa
 
         if (n < 0)
             error("ERROR writing to socket");
-    }
-    else if(command == "M")
-    {
-
     }
     else if(command == "L")
     {
