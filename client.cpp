@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <iostream>
 #include <string>
+#include <pthread.h>
 
 using namespace std;
 
@@ -15,6 +16,36 @@ void error(const char *msg)
 {
     perror(msg);
     exit(0);
+}
+
+struct server_data {
+    int server_socket;
+};
+
+/* Global variable */
+pthread_t serverThread;
+struct server_data data;
+
+void *ReadFromServer(void *thread)
+{
+    cout << "=> Thread started for ReadFromServer" << endl;
+    struct server_data *server;
+    server = (struct server_data *) thread;
+
+    int serverSocket = (int)(intptr_t)thread;
+    int n;
+
+    char buffer[256];
+    while(true)
+    {
+        bzero(buffer, 256);
+
+        n = read(server->server_socket, buffer, 255);
+        cout << buffer << endl;
+
+        if (n < 0)
+             error("ERROR reading from socket");
+    }
 }
 
 int main()
@@ -72,6 +103,9 @@ int main()
 
     /* TODO: make client listen to server socket in another thread */
 
+    // Read from server
+    data.server_socket = sockfd;
+    int rc = pthread_create(&serverThread, NULL, ReadFromServer, (void *)&sockfd);
 
     // Read and write to socket
     while (true)
@@ -87,16 +121,11 @@ int main()
         strncpy(buffer, fool.c_str(), sizeof(buffer));
 
         n = write(sockfd, buffer, strlen(buffer));
+
+        if (n < 0)
+            error("ERROR writing to socket");
+
     }
-
-    if (n < 0)
-         error("ERROR writing to socket");
-
-    bzero(buffer,256);
-    n = read(sockfd,buffer,255);
-    if (n < 0)
-         error("ERROR reading from socket");
-    printf("%s\n",buffer);
     close(sockfd);
     return 0;
 }

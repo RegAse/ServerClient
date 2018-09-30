@@ -34,8 +34,10 @@ struct client_data {
 pthread_t clients[10]; // 10 Clients
 struct client_data data[10];
 
-void HandleClientCommand(string command, client_data *client)
+void HandleClientCommand(string command, string body, client_data *client)
 {
+    int n;
+    char buffer[256];
     if(command == "C")
     {
         // Client can call this again to change his username.
@@ -45,6 +47,37 @@ void HandleClientCommand(string command, client_data *client)
     {
         cout << "Send Message to All Clients" << endl;
         cout << "From: " << client->username << endl;
+        for(int i = 0; i < 10; i++)
+        {
+            if(clients[i] != 0)
+            {
+                cout << "Send Message to:" << data[i].username << endl;
+                strncpy(buffer, body.c_str(), sizeof(buffer));
+                n = write(data[i].client_socket, body.c_str(), strlen(buffer));
+                if (n < 0)
+                    ErrorMessage("ERROR writing to socket");
+            }
+        }
+    }
+    else if(command == "M")
+    {
+
+    }
+    else if(command == "L")
+    {
+
+    }
+    else if(command == "W")
+    {
+
+    }
+    else if(command == "I")
+    {
+
+    }
+    else if(command == "K")
+    {
+
     }
 }
 
@@ -82,7 +115,7 @@ void *ReadFromClient(void *thread)
             client->username = body;
             cout << "SETTING USERNAME" << endl;
         }
-        HandleClientCommand(command, client);
+        HandleClientCommand(command, body, client);
 
         bzero(buffer, 256);
     }
@@ -154,69 +187,4 @@ int main()
 {
     ListenForConnections(5232);
     return -1;
-    pthread_t clients[10]; // 10 Clients
-    struct client_data data[10];
-
-    int port = 5231;
-    int serverSock, clientSock;
-
-    socklen_t clilen;
-    char buffer[256];
-    struct sockaddr_in serv_addr, cli_addr;
-    int n;
-
-    serverSock = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (serverSock < 0)
-        ErrorMessage("ERROR opening socket");
-
-    bzero((char *) &serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(port);
-
-    /* Binding Server Socket */
-    if (bind(serverSock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-        ErrorMessage("ERROR on binding");
-
-    listen(serverSock, 5);
-
-    clilen = sizeof(cli_addr);
-
-    cout << "Listening for connections" << endl;
-    clientSock = accept(serverSock, (struct sockaddr *) &cli_addr, &clilen);
-    if (clientSock < 0)
-    {
-        ErrorMessage("ERROR on accept");
-    }
-
-    bzero(buffer,256);
-
-    // Create Thread to read from client.
-    data[0].thread_id = 1;
-    data[0].client_socket = clientSock;
-
-    int rc = pthread_create(&clients[0], NULL, ReadFromClient, (void *)&data[0]);
-
-    cout << "Thread created to handle current client, i am going to start listening again." << endl;
-
-    //ReadFromClient(clientSock);
-    /*while(true)
-    {
-        cout << "Reading from client socket." << endl;
-        n = read(clientSock, buffer, 255);
-        printf("Message from USERNAME: %s\n", buffer);
-    }*/
-
-    if (n < 0) ErrorMessage("ERROR reading from socket");
-    printf("Here is the message: %s\n", buffer);
-
-    n = write(clientSock,"I got your message", 18);
-
-    if (n < 0) ErrorMessage("ERROR writing to socket");
-
-    /* Close sockets */
-    close(clientSock);
-    close(serverSock);
-    return 0;
 }
