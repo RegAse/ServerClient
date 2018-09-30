@@ -1,5 +1,7 @@
 # ServerClient
 
+## The Client shows instructions on how the commands work.
+
 Client can send these commands to the server
 -> Commands
 * C => Connect with username
